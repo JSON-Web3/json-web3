@@ -58,6 +58,14 @@ const restoredUnsafe = jsonWeb3.parse_UNSAFE(textUnsafe)
 // restoredUnsafe.fn is a callable function
 ```
 
+## Full example
+
+```ts
+import jsonWeb3 from 'json-web3'
+
+window.JSON = jsonWeb3 // Yes, you can replace it directly; it is fully compatible.
+```
+
 ## API (Fully compatible with native globalThis.JSON)
 
 - `stringify(value, replacer?, space?)`
