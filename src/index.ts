@@ -58,6 +58,22 @@ export const stringify = (value: any, replacer: Replacer = null, space?: string 
     space,
   )
 
+export const stringify_UNSAFE = (
+  value: any,
+  replacer: Replacer = null,
+  space?: string | number,
+): string =>
+  RAW_JSON.stringify(
+    value,
+    function replacerFn(key, v) {
+      const holderValue = this && key in Object(this) ? (this as any)[key] : v
+      const candidate = isDate(holderValue) || isURL(holderValue) ? holderValue : v
+      const replaced = applyReplacer(this, key, candidate, replacer)
+      return toSerializable(replaced, { allowFunction: true })
+    },
+    space,
+  )
+
 export const parse = <T = any>(text: string, reviver: Reviver = null): T =>
   RAW_JSON.parse(text, (key, v) => {
     const decoded = fromSerializable(v)
@@ -72,6 +88,7 @@ export const parse_UNSAFE = <T = any>(text: string, reviver: Reviver = null): T 
 
 export default {
   stringify,
+  stringify_UNSAFE,
   parse,
   parse_UNSAFE,
 }

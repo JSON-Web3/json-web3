@@ -1,6 +1,6 @@
 import { Script, createContext } from 'node:vm'
 import { describe, expect, it } from 'vitest'
-import jsonWeb3, { parse, parse_UNSAFE, stringify } from '../src/index'
+import jsonWeb3, { parse, parse_UNSAFE, stringify, stringify_UNSAFE } from '../src/index'
 import { getTypedArrayName, isBuffer } from '../src/utils'
 
 describe('json-web3', () => {
@@ -176,7 +176,7 @@ describe('json-web3', () => {
     expect(output.d.getTime()).toBe(d.getTime())
   })
 
-  it('round-trips Map, Set, RegExp, URL, and Function with parse_UNSAFE', () => {
+  it('round-trips Map, Set, RegExp, URL, and Function with stringify_UNSAFE + parse_UNSAFE', () => {
     function echo(arg: string) {
       return arg
     }
@@ -187,7 +187,7 @@ describe('json-web3', () => {
       url: new URL('https://example.com/'),
       fn: echo,
     }
-    const text = stringify(input)
+    const text = stringify_UNSAFE(input)
     const output = parse_UNSAFE(text)
 
     expect(output.map).toBeInstanceOf(Map)
@@ -236,7 +236,7 @@ describe('json-web3', () => {
       url: new URL('https://example.com/'),
       fn: (arg: string) => arg,
     }
-    const text = stringify(input, ['d', 'inf', 'map', 'set', 're', 'url', 'fn'])
+    const text = stringify_UNSAFE(input, ['d', 'inf', 'map', 'set', 're', 'url', 'fn'])
     const output = parse_UNSAFE(text)
 
     expect(output.d).toBeInstanceOf(Date)
@@ -415,10 +415,10 @@ describe('json-web3', () => {
     expect(output.bytes[256]).toBe(0)
   })
 
-  it('symbol is dropped while function is preserved with parse_UNSAFE', () => {
+  it('symbol is dropped while function is preserved with stringify_UNSAFE + parse_UNSAFE', () => {
     const sym = Symbol('x')
     const input: any = { a: 1, s: sym, f: (arg: string) => arg }
-    const text = stringify(input)
+    const text = stringify_UNSAFE(input)
     const output = parse_UNSAFE(text)
     expect(output.a).toBe(1)
     expect(output.s).toBeUndefined()
@@ -428,10 +428,17 @@ describe('json-web3', () => {
 
   it('parse keeps function payloads as tagged objects', () => {
     const input = { fn: (arg: string) => arg }
-    const text = stringify(input)
+    const text = stringify_UNSAFE(input)
     const output = parse(text)
 
     expect(output.fn).toEqual({ '__@json.function__': expect.any(String) })
+  })
+
+  it('stringify drops function by default', () => {
+    const input = { fn: (arg: string) => arg }
+    const text = stringify(input)
+    const output = parse(text)
+    expect(output).toEqual({})
   })
 
   it('BigInt in array with replacer array filtering works as expected', () => {

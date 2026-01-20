@@ -90,7 +90,7 @@ export const fromHex = (hex: string): Uint8Array => {
   return out
 }
 
-export const toSerializable = (value: any): any => {
+export const toSerializable = (value: any, options: { allowFunction?: boolean } = {}): any => {
   if (isBigInt(value)) {
     return { [BIGINT_TAG]: value.toString() }
   }
@@ -120,6 +120,9 @@ export const toSerializable = (value: any): any => {
   }
 
   if (isFunction(value)) {
+    if (!options.allowFunction) {
+      return value
+    }
     return { [FUNCTION_TAG]: value.toString() }
   }
 

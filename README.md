@@ -49,17 +49,19 @@ const restored = jsonWeb3.parse(text)
     headers: Map(1) {...},
     re: /([^\s]+)/g,
     url: URL(...),
-    fn: { "__@json.function__": "function echo(arg) { return arg }" }
+    fn: undefined
   }
 */
 
-const restoredUnsafe = jsonWeb3.parse_UNSAFE(text)
+const textUnsafe = jsonWeb3.stringify_UNSAFE(payload)
+const restoredUnsafe = jsonWeb3.parse_UNSAFE(textUnsafe)
 // restoredUnsafe.fn is a callable function
 ```
 
 ## API (Fully compatible with native globalThis.JSON)
 
 - `stringify(value, replacer?, space?)`
+- `stringify_UNSAFE(value, replacer?, space?)` (serializes `Function` payloads)
 - `parse(text, reviver?)`
 - `parse_UNSAFE(text, reviver?)` (revives `Function` payloads via `new Function(...)`)
 
@@ -71,7 +73,7 @@ const restoredUnsafe = jsonWeb3.parse_UNSAFE(text)
 - `Map` values are encoded as `{"__@json.map__":[[k,v],...]}` and `Set` values as `{"__@json.set__":[...]}`.
 - `RegExp` values are encoded as `{"__@json.regexp__":{"source":"...","flags":"..."}}`.
 - `URL` values are encoded as `{"__@json.url__":"..."}`.
-- `Function` values are encoded as `{"__@json.function__":"<source>"}` and are only revived by `parse_UNSAFE` using `new Function(...)` (only do this with trusted input).
+- `Function` values are encoded as `{"__@json.function__":"<source>"}` by `stringify_UNSAFE` and are only revived by `parse_UNSAFE` using `new Function(...)` (only do this with trusted input).
 - `ArrayBuffer`, Node `Buffer` JSON shapes, and typed arrays are encoded as `{"__@json.typedarray__":{"type":"<Name>","bytes":"0x..."}}` and decoded back to the original typed array (`Uint8Array`, `Uint8ClampedArray`, `Uint16Array`, `Uint32Array`, `Int8Array`, `Int16Array`, `Int32Array`, `Float32Array`, `Float64Array`, `BigInt64Array`, `BigUint64Array`).
 
 Compared to libraries that require eval-based parsing (for example, `serialize-javascript`), this approach is generally safer and more efficient.
