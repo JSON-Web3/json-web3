@@ -119,15 +119,15 @@ describe('json-web3', () => {
     expect(Array.from(output)).toEqual([10, 11, 12])
   })
 
-  it('handles ArrayBuffer value as bytes', () => {
+  it('handles ArrayBuffer value as ArrayBuffer', () => {
     const ab = new ArrayBuffer(4)
     new Uint8Array(ab).set([9, 8, 7, 6])
 
     const text = stringify({ ab })
     const output = parse(text)
 
-    expect(output.ab).toBeInstanceOf(Uint8Array)
-    expect(Array.from(output.ab)).toEqual([9, 8, 7, 6])
+    expect(output.ab).toBeInstanceOf(ArrayBuffer)
+    expect(Array.from(new Uint8Array(output.ab))).toEqual([9, 8, 7, 6])
   })
 
   it('does not mutate JSON primitives and null', () => {
@@ -226,6 +226,15 @@ describe('json-web3', () => {
     expect(Array.from(output.data)).toEqual([1])
   })
 
+  it('replacer array does not drop arraybuffer tag keys', () => {
+    const input = { data: { '__@json.arraybuffer__': { bytes: '0x0102' } } }
+    const text = stringify(input, ['data'])
+    const output = parse(text)
+
+    expect(output.data).toBeInstanceOf(ArrayBuffer)
+    expect(Array.from(new Uint8Array(output.data))).toEqual([1, 2])
+  })
+
   it('replacer array does not drop new internal tag keys', () => {
     const input = {
       d: new Date('2020-01-02T03:04:05.006Z'),
@@ -296,6 +305,11 @@ describe('json-web3', () => {
   it('parse_UNSAFE throws on invalid function payloads', () => {
     const text = '{"x":{"__@json.function__":123}}'
     expect(() => parse_UNSAFE(text)).toThrowError()
+  })
+
+  it('parse throws on invalid arraybuffer payload', () => {
+    const text = '{"x":{"__@json.arraybuffer__":{"bytes":123}}}'
+    expect(() => parse(text)).toThrowError()
   })
 
   it('falls back to raw bytes when typed array type is unknown', () => {
@@ -439,6 +453,15 @@ describe('json-web3', () => {
     const text = stringify(input)
     const output = parse(text)
     expect(output).toEqual({})
+  })
+
+  it('parse_UNSAFE reviver receives decoded values', () => {
+    const text = stringify_UNSAFE({ fn: (arg: string) => arg })
+    const output = parse_UNSAFE(text, (_key, value) =>
+      typeof value === 'function' ? value('ok') : value,
+    )
+
+    expect(output.fn).toBe('ok')
   })
 
   it('BigInt in array with replacer array filtering works as expected', () => {

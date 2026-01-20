@@ -65,6 +65,41 @@ const restoredUnsafe = jsonWeb3.parse_UNSAFE(textUnsafe)
 - `stringify_UNSAFE(value, replacer?, space?)` (serializes `Function` payloads)
 - `parse_UNSAFE(text, reviver?)` (revives `Function` payloads via `new Function(...)`)
 
+## Type support
+
+| type                | supported by standard JSON? | supported by json-web3?               |
+| ------------------- | --------------------------- | ------------------------------------- |
+| `string`            | ✅                          | ✅                                    |
+| `number`            | ✅                          | ✅                                    |
+| `boolean`           | ✅                          | ✅                                    |
+| `null`              | ✅                          | ✅                                    |
+| `Array`             | ✅                          | ✅                                    |
+| `Object`            | ✅                          | ✅                                    |
+| `undefined`         | ❌                          | ❌                                    |
+| `Infinity`          | ❌                          | ✅                                    |
+| `-Infinity`         | ❌                          | ✅                                    |
+| `NaN`               | ❌                          | ✅                                    |
+| `BigInt`            | ❌                          | ✅                                    |
+| `Date`              | ❌                          | ✅                                    |
+| `RegExp`            | ❌                          | ✅                                    |
+| `Set`               | ❌                          | ✅                                    |
+| `Map`               | ❌                          | ✅                                    |
+| `URL`               | ❌                          | ✅                                    |
+| `ArrayBuffer`       | ❌                          | ✅                                    |
+| `Uint8Array`        | ❌                          | ✅                                    |
+| `Uint8ClampedArray` | ❌                          | ✅                                    |
+| `Uint16Array`       | ❌                          | ✅                                    |
+| `Uint32Array`       | ❌                          | ✅                                    |
+| `Int8Array`         | ❌                          | ✅                                    |
+| `Int16Array`        | ❌                          | ✅                                    |
+| `Int32Array`        | ❌                          | ✅                                    |
+| `Float16Array`      | ❌                          | ✅                                    |
+| `Float32Array`      | ❌                          | ✅                                    |
+| `Float64Array`      | ❌                          | ✅                                    |
+| `BigInt64Array`     | ❌                          | ✅                                    |
+| `BigUint64Array`    | ❌                          | ✅                                    |
+| `Function`          | ❌                          | ✅ ⚠️(use UNSAFE api, it's dangerous) |
+
 ## Note
 
 - `bigint` values are encoded as objects: `{"__@json.bigint__":"<value>"}`.
@@ -73,7 +108,8 @@ const restoredUnsafe = jsonWeb3.parse_UNSAFE(textUnsafe)
 - `Map` values are encoded as `{"__@json.map__":[[k,v],...]}` and `Set` values as `{"__@json.set__":[...]}`.
 - `RegExp` values are encoded as `{"__@json.regexp__":{"source":"...","flags":"..."}}`.
 - `URL` values are encoded as `{"__@json.url__":"..."}`.
-- `Function` values are encoded as `{"__@json.function__":"<source>"}` by `stringify_UNSAFE` and are only revived by `parse_UNSAFE` using `new Function(...)` (only do this with trusted input).
-- `ArrayBuffer`, Node `Buffer` JSON shapes, and typed arrays are encoded as `{"__@json.typedarray__":{"type":"<Name>","bytes":"0x..."}}` and decoded back to the original typed array (`Uint8Array`, `Uint8ClampedArray`, `Uint16Array`, `Uint32Array`, `Int8Array`, `Int16Array`, `Int32Array`, `Float32Array`, `Float64Array`, `BigInt64Array`, `BigUint64Array`).
+- `Function` values are encoded as `{"__@json.function__":"<source>"}` by `stringify_UNSAFE` and are only revived by `parse_UNSAFE` using `new Function(...)` (using the UNSAFE function pair is dangerous; make sure your data is trusted).
+- `ArrayBuffer` values are encoded as `{"__@json.arraybuffer__":{"bytes":"0x..."}}` and decoded back to `ArrayBuffer`.
+- Node `Buffer` JSON shapes and typed arrays are encoded as `{"__@json.typedarray__":{"type":"<Name>","bytes":"0x..."}}` and decoded back to the original typed array (`Uint8Array`, `Uint8ClampedArray`, `Uint16Array`, `Uint32Array`, `Int8Array`, `Int16Array`, `Int32Array`, `Float32Array`, `Float64Array`, `BigInt64Array`, `BigUint64Array`).
 
 Compared to libraries that require eval-based parsing (for example, `serialize-javascript`), this approach is generally safer and more efficient.

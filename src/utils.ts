@@ -1,5 +1,6 @@
 export const BIGINT_TAG = '__@json.bigint__'
 export const TYPEDARRAY_TAG = '__@json.typedarray__'
+export const ARRAYBUFFER_TAG = '__@json.arraybuffer__'
 export const DATE_TAG = '__@json.date__'
 export const MAP_TAG = '__@json.map__'
 export const SET_TAG = '__@json.set__'
@@ -141,7 +142,7 @@ export const toSerializable = (value: any, options: { allowFunction?: boolean } 
   }
 
   if (isArrayBuffer(value)) {
-    return { [TYPEDARRAY_TAG]: { type: 'Uint8Array', bytes: toHex(new Uint8Array(value)) } }
+    return { [ARRAYBUFFER_TAG]: { bytes: toHex(new Uint8Array(value)) } }
   }
 
   if (
@@ -223,6 +224,16 @@ export const fromSerializable = (value: any, options: { allowFunction?: boolean 
       new Uint8Array(buffer).set(bytes)
       return new ctor(buffer)
     }
+    if (hasOwnProperty(value, ARRAYBUFFER_TAG)) {
+      const payload = value[ARRAYBUFFER_TAG]
+      if (!payload || !isObject(payload) || !isString(payload.bytes)) {
+        throw new Error('Invalid arraybuffer payload')
+      }
+      const bytes = fromHex(payload.bytes)
+      const buffer = new ArrayBuffer(bytes.byteLength)
+      new Uint8Array(buffer).set(bytes)
+      return buffer
+    }
     if (
       value.type === 'Buffer' &&
       isArray(value.data) &&
@@ -240,6 +251,9 @@ export const isTypedArrayPayload = (value: any): boolean =>
   isString(value.type) &&
   isString(value.bytes) &&
   Object.keys(value).length === 2
+
+export const isArrayBufferPayload = (value: any): boolean =>
+  isObject(value) && isString(value.bytes) && Object.keys(value).length === 1
 
 export const isRegExpPayload = (value: any): boolean =>
   isObject(value) &&

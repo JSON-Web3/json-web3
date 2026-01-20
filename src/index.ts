@@ -1,9 +1,11 @@
 import {
+  ARRAYBUFFER_TAG,
   BIGINT_TAG,
   DATE_TAG,
   fromSerializable,
   FUNCTION_TAG,
   isArray,
+  isArrayBufferPayload,
   isDate,
   isFunction,
   isRegExpPayload,
@@ -38,7 +40,9 @@ const applyReplacer = (holder: any, key: string, value: any, replacer: Replacer)
     if (key === URL_TAG) return value
     if (key === FUNCTION_TAG) return value
     if (key === TYPEDARRAY_TAG) return value
+    if (key === ARRAYBUFFER_TAG) return value
     if (isTypedArrayPayload(holder)) return value
+    if (isArrayBufferPayload(holder)) return value
     if (isRegExpPayload(holder)) return value
     if (isArray(holder)) return value
     return replacer.includes(key) ? value : undefined
