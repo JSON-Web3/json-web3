@@ -1,6 +1,6 @@
 {
   "name": "json-web3",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "BigInt-safe JSON serialization and deserialization for Web3 use cases.",
   "keywords": [
     "json",
@@ -36,11 +36,9 @@
   ],
   "scripts": {
     "build": "tsup",
-    "coverage": "vitest run --coverage",
+    "test": "vitest run --coverage",
     "lint": "prettier . --write",
     "prepublishOnly": "pnpm run build",
-    "test": "vitest run",
-    "test:coverage": "pnpm run coverage",
     "test:watch": "vitest"
   },
   "devDependencies": {

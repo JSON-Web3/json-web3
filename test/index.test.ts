@@ -1,6 +1,7 @@
+import { Script, createContext } from 'node:vm'
 import { describe, expect, it } from 'vitest'
 import jsonWeb3, { parse, stringify } from '../src/index'
-import { isBuffer } from '../src/utils'
+import { getTypedArrayName, isBuffer } from '../src/utils'
 
 describe('json-web3', () => {
   it('serializes and deserializes bigint values', () => {
@@ -53,6 +54,20 @@ describe('json-web3', () => {
     expect(Array.from(output.data)).toEqual([1, 2, 3, 255])
   })
 
+  it('serializes cross-realm Uint8Array bytes', () => {
+    const context = createContext({})
+    const script = new Script('u = new Uint8Array([1, 2, 3, 255])')
+    script.runInContext(context)
+    const foreign = (context as any).u
+
+    const text = stringify({ data: foreign })
+    const output = parse(text)
+
+    expect(text).toContain('__@json.typedarray__')
+    expect(output.data).toBeInstanceOf(Uint8Array)
+    expect(Array.from(output.data)).toEqual([1, 2, 3, 255])
+  })
+
   it('serializes Buffer as bytes when available', () => {
     if (typeof Buffer === 'undefined') return
     const input = { data: Buffer.from([4, 5, 6]) }
@@ -61,6 +76,11 @@ describe('json-web3', () => {
 
     expect(output.data).toBeInstanceOf(Uint8Array)
     expect(Array.from(output.data)).toEqual([4, 5, 6])
+  })
+
+  it('getTypedArrayName falls back to Object.prototype.toString tag', () => {
+    const fake = { [Symbol.toStringTag]: 'Uint8Array', constructor: undefined }
+    expect(getTypedArrayName(fake)).toBe('Uint8Array')
   })
 
   it('supports JSON.parse reviver after decoding', () => {
@@ -157,7 +177,7 @@ describe('json-web3', () => {
     expect(text).toContain('  "a": 1')
   })
 
-  it('replacer array should not filter internal tags keys (coverage for BIGINT_TAG/BYTES_TAG)', () => {
+  it('replacer array should not filter internal tags keys (coverage for BIGINT_TAG/TYPEDARRAY_TAG)', () => {
     const input = { a: 1n, b: new Uint8Array([1, 2]) }
     const text = stringify(input, ['a']) // filter out b
     const output = parse(text)
@@ -165,8 +185,8 @@ describe('json-web3', () => {
     expect(output).toEqual({ a: 1n })
   })
 
-  it('replacer array does not drop bytes tag keys', () => {
-    const input = { data: { '__@json.bytes__': '0x01' } }
+  it('replacer array does not drop typed array tag keys', () => {
+    const input = { data: { '__@json.typedarray__': { type: 'Uint8Array', bytes: '0x01' } } }
     const text = stringify(input, ['data'])
     const output = parse(text)
 
@@ -192,14 +212,14 @@ describe('json-web3', () => {
     expect(Array.from(output.data)).toEqual([1, 2, 3])
   })
 
-  it('parse should throw on invalid bytes hex string', () => {
+  it('parse should throw on invalid typed array bytes hex string', () => {
     // normalized length is odd -> fromHex throws
-    const bad = '{"data":{"__@json.bytes__":"0xabc"}}'
+    const bad = '{"data":{"__@json.typedarray__":{"type":"Uint8Array","bytes":"0xabc"}}}'
     expect(() => parse(bad)).toThrowError(/Invalid hex string for bytes/)
   })
 
-  it('parses bytes tag without 0x prefix', () => {
-    const text = '{"data":{"__@json.bytes__":"0102ff"}}'
+  it('parses typed array bytes without 0x prefix', () => {
+    const text = '{"data":{"__@json.typedarray__":{"type":"Uint8Array","bytes":"0102ff"}}}'
     const output = parse(text)
 
     expect(output.data).toBeInstanceOf(Uint8Array)
@@ -212,7 +232,7 @@ describe('json-web3', () => {
     ;(globalThis as any).Buffer = undefined
 
     try {
-      const text = '{"data":{"__@json.bytes__":"0x0a0b"}}'
+      const text = '{"data":{"__@json.typedarray__":{"type":"Uint8Array","bytes":"0x0a0b"}}}'
       const output = parse(text)
       expect(output.data).toBeInstanceOf(Uint8Array)
       expect(Array.from(output.data)).toEqual([10, 11])
@@ -324,25 +344,50 @@ describe('json-web3', () => {
     expect(output).toEqual({ list: [1n, 2n] })
   })
 
-  it('decodes bytes tag at root', () => {
-    const text = '{"__@json.bytes__":"0x0a0b"}'
+  it('decodes typed array tag at root', () => {
+    const text = '{"__@json.typedarray__":{"type":"Uint8Array","bytes":"0x0a0b"}}'
     const output = parse(text)
 
     expect(output).toBeInstanceOf(Uint8Array)
     expect(Array.from(output)).toEqual([10, 11])
   })
 
-  it('does not treat non-Uint8Array typed arrays as bytes', () => {
-    const input = { data: new Uint16Array([1, 256]) }
-    const text = stringify(input)
-    const output = parse(text)
+  it('supports typed arrays round-trip', () => {
+    const cases: Array<{ name: string; ctor: any; values: any[] }> = [
+      { name: 'Uint8ClampedArray', ctor: Uint8ClampedArray, values: [0, 255, 128] },
+      { name: 'Uint16Array', ctor: Uint16Array, values: [1, 256, 65535] },
+      { name: 'Uint32Array', ctor: Uint32Array, values: [1, 65536, 4294967295] },
+      { name: 'Int8Array', ctor: Int8Array, values: [-128, -1, 0, 127] },
+      { name: 'Int16Array', ctor: Int16Array, values: [-32768, -1, 0, 32767] },
+      { name: 'Int32Array', ctor: Int32Array, values: [-2147483648, -1, 0, 2147483647] },
+      { name: 'Float32Array', ctor: Float32Array, values: [1.5, -2.25, 3] },
+      { name: 'Float64Array', ctor: Float64Array, values: [1.5, -2.25, 3] },
+      {
+        name: 'BigInt64Array',
+        ctor: typeof BigInt64Array !== 'undefined' ? BigInt64Array : undefined,
+        values: [1n, -2n, 3n],
+      },
+      {
+        name: 'BigUint64Array',
+        ctor: typeof BigUint64Array !== 'undefined' ? BigUint64Array : undefined,
+        values: [1n, 2n, 3n],
+      },
+    ]
 
-    expect(text).toBe('{"data":{"0":1,"1":256}}')
-    expect(output).toEqual({ data: { 0: 1, 1: 256 } })
+    for (const { name, ctor, values } of cases) {
+      if (!ctor) continue
+      const input = { data: new ctor(values as any) }
+      const text = stringify(input)
+      const output = parse(text)
+
+      expect(text).toContain('__@json.typedarray__')
+      expect(output.data).toBeInstanceOf(ctor)
+      expect(Array.from(output.data)).toEqual(values)
+    }
   })
 
-  it('throws if bytes tag is not a string', () => {
-    const text = '{"data":{"__@json.bytes__":123}}'
+  it('throws if typed array bytes is not a string', () => {
+    const text = '{"data":{"__@json.typedarray__":{"type":"Uint8Array","bytes":123}}}'
     expect(() => parse(text)).toThrow()
   })
 
@@ -355,8 +400,8 @@ describe('json-web3', () => {
     expect(output.data).not.toBeInstanceOf(Uint8Array)
   })
 
-  it('parses empty bytes tag', () => {
-    const text = '{"data":{"__@json.bytes__":"0x"}}'
+  it('parses empty typed array bytes', () => {
+    const text = '{"data":{"__@json.typedarray__":{"type":"Uint8Array","bytes":"0x"}}}'
     const output = parse(text)
 
     expect(output.data).toBeInstanceOf(Uint8Array)

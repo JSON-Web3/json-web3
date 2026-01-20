@@ -1,10 +1,11 @@
 import {
   BIGINT_TAG,
-  BYTES_TAG,
   fromSerializable,
   isArray,
   isFunction,
+  isTypedArrayPayload,
   toSerializable,
+  TYPEDARRAY_TAG,
   undefined,
 } from './utils'
 
@@ -19,7 +20,8 @@ const applyReplacer = (holder: any, key: string, value: any, replacer: Replacer)
   if (isArray(replacer)) {
     if (key === '') return value
     if (key === BIGINT_TAG) return value
-    if (key === BYTES_TAG) return value
+    if (key === TYPEDARRAY_TAG) return value
+    if (isTypedArrayPayload(holder)) return value
     if (isArray(holder)) return value
     return replacer.includes(key) ? value : undefined
   }
@@ -39,7 +41,7 @@ export const stringify = (value: any, replacer: Replacer = null, space?: string 
 export const parse = (text: string, reviver: Reviver = null): any =>
   RAW_JSON.parse(text, (key, v) => {
     const decoded = fromSerializable(v)
-    return typeof reviver === 'function' ? reviver(key, decoded) : decoded
+    return isFunction(reviver) ? reviver(key, decoded) : decoded
   })
 
 export default {
