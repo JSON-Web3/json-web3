@@ -149,7 +149,7 @@ export const toSerializable = (value: any): any => {
   return value
 }
 
-export const fromSerializable = (value: any): any => {
+export const fromSerializable = (value: any, options: { allowFunction?: boolean } = {}): any => {
   if (value && isObject(value)) {
     if (hasOwnProperty(value, BIGINT_TAG)) {
       return BigInt(value[BIGINT_TAG])
@@ -193,6 +193,9 @@ export const fromSerializable = (value: any): any => {
       return new URL(payload)
     }
     if (hasOwnProperty(value, FUNCTION_TAG)) {
+      if (!options.allowFunction) {
+        return value
+      }
       const payload = value[FUNCTION_TAG]
       if (!isString(payload)) {
         throw new Error('Invalid function payload')

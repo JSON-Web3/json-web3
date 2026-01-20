@@ -64,7 +64,14 @@ export const parse = <T = any>(text: string, reviver: Reviver = null): T =>
     return isFunction(reviver) ? reviver(key, decoded) : decoded
   })
 
+export const parse_UNSAFE = <T = any>(text: string, reviver: Reviver = null): T =>
+  RAW_JSON.parse(text, (key, v) => {
+    const decoded = fromSerializable(v, { allowFunction: true })
+    return isFunction(reviver) ? reviver(key, decoded) : decoded
+  })
+
 export default {
   stringify,
   parse,
+  parse_UNSAFE,
 }

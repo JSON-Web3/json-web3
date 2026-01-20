@@ -1,6 +1,6 @@
 import { Script, createContext } from 'node:vm'
 import { describe, expect, it } from 'vitest'
-import jsonWeb3, { parse, stringify } from '../src/index'
+import jsonWeb3, { parse, parse_UNSAFE, stringify } from '../src/index'
 import { getTypedArrayName, isBuffer } from '../src/utils'
 
 describe('json-web3', () => {
@@ -176,7 +176,7 @@ describe('json-web3', () => {
     expect(output.d.getTime()).toBe(d.getTime())
   })
 
-  it('round-trips Map, Set, RegExp, URL, and Function', () => {
+  it('round-trips Map, Set, RegExp, URL, and Function with parse_UNSAFE', () => {
     function echo(arg: string) {
       return arg
     }
@@ -188,7 +188,7 @@ describe('json-web3', () => {
       fn: echo,
     }
     const text = stringify(input)
-    const output = parse(text)
+    const output = parse_UNSAFE(text)
 
     expect(output.map).toBeInstanceOf(Map)
     expect(Array.from(output.map.entries())).toEqual([['hello', 'world']])
@@ -237,7 +237,7 @@ describe('json-web3', () => {
       fn: (arg: string) => arg,
     }
     const text = stringify(input, ['d', 'inf', 'map', 'set', 're', 'url', 'fn'])
-    const output = parse(text)
+    const output = parse_UNSAFE(text)
 
     expect(output.d).toBeInstanceOf(Date)
     expect(output.d.getTime()).toBe(input.d.getTime())
@@ -279,19 +279,23 @@ describe('json-web3', () => {
     expect(() => parse(bad)).toThrowError(/Invalid hex string for bytes/)
   })
 
-  it('parse throws on invalid payloads for new types', () => {
+  it('parse throws on invalid payloads for new types (except function)', () => {
     const cases = [
       '{"x":{"__@json.number__":"bad"}}',
       '{"x":{"__@json.map__":123}}',
       '{"x":{"__@json.set__":123}}',
       '{"x":{"__@json.regexp__":{"source":1,"flags":[]}}}',
       '{"x":{"__@json.url__":123}}',
-      '{"x":{"__@json.function__":123}}',
     ]
 
     for (const text of cases) {
       expect(() => parse(text)).toThrowError()
     }
+  })
+
+  it('parse_UNSAFE throws on invalid function payloads', () => {
+    const text = '{"x":{"__@json.function__":123}}'
+    expect(() => parse_UNSAFE(text)).toThrowError()
   })
 
   it('falls back to raw bytes when typed array type is unknown', () => {
@@ -411,15 +415,23 @@ describe('json-web3', () => {
     expect(output.bytes[256]).toBe(0)
   })
 
-  it('symbol is dropped while function is preserved', () => {
+  it('symbol is dropped while function is preserved with parse_UNSAFE', () => {
     const sym = Symbol('x')
     const input: any = { a: 1, s: sym, f: (arg: string) => arg }
     const text = stringify(input)
-    const output = parse(text)
+    const output = parse_UNSAFE(text)
     expect(output.a).toBe(1)
     expect(output.s).toBeUndefined()
     expect(typeof output.f).toBe('function')
     expect(output.f('ok')).toBe('ok')
+  })
+
+  it('parse keeps function payloads as tagged objects', () => {
+    const input = { fn: (arg: string) => arg }
+    const text = stringify(input)
+    const output = parse(text)
+
+    expect(output.fn).toEqual({ '__@json.function__': expect.any(String) })
   })
 
   it('BigInt in array with replacer array filtering works as expected', () => {

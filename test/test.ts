@@ -17,5 +17,5 @@ const payload = {
 
 const text = jsonWeb3.stringify(payload, null, 2)
 console.log('text', text)
-const restored = jsonWeb3.parse(text)
+const restored = jsonWeb3.parse_UNSAFE(text)
 console.log('restored', restored)
