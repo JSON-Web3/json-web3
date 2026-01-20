@@ -8,8 +8,9 @@ export const URL_TAG = '__@json.url__'
 export const FUNCTION_TAG = '__@json.function__'
 export const NUMBER_TAG = '__@json.number__'
 
-export const undefined = void 0
-export const isUndefined = (value: any): value is undefined => typeof value === 'undefined'
+const UDF = 'undefined'
+export const undefined = void UDF
+
 export const isString = (value: any): value is string => typeof value === 'string'
 export const hasOwnProperty = (obj: any, prop: string): boolean =>
   Object.prototype.hasOwnProperty.call(obj, prop)
@@ -22,20 +23,20 @@ export const isDate = (value: any): value is Date => value instanceof Date
 export const isMap = (value: any): value is Map<any, any> => value instanceof Map
 export const isSet = (value: any): value is Set<any> => value instanceof Set
 export const isRegExp = (value: any): value is RegExp => value instanceof RegExp
-export const isURL = (value: any): value is URL => !isUndefined(URL) && value instanceof URL
+export const isURL = (value: any): value is URL => typeof URL !== UDF && value instanceof URL
 export const isNonFiniteNumber = (value: any): value is number =>
   typeof value === 'number' && !Number.isFinite(value)
 export const isInteger = (value: any): value is number => Number.isInteger(value)
-const hasBuffer = (): boolean => typeof Buffer !== 'undefined'
+const hasBuffer = (): boolean => typeof Buffer !== UDF && isFunction(Buffer.isBuffer)
 
 export const isBuffer = (value: any): value is Buffer =>
   hasBuffer() && isFunction(Buffer.isBuffer) && Buffer.isBuffer(value)
 export const isArrayBuffer = (value: any): value is ArrayBuffer =>
-  !isUndefined(ArrayBuffer) && value instanceof ArrayBuffer
+  typeof ArrayBuffer !== UDF && value instanceof ArrayBuffer
 
 export const isTypedArray = (value: any): value is ArrayBufferView => {
-  if (isUndefined(value)) return false
-  if (!isUndefined(ArrayBuffer) && isFunction(ArrayBuffer.isView) && ArrayBuffer.isView(value)) {
+  if (value == null) return false
+  if (typeof ArrayBuffer !== UDF && isFunction(ArrayBuffer.isView) && ArrayBuffer.isView(value)) {
     return Object.prototype.toString.call(value) !== '[object DataView]'
   }
   const tag = Object.prototype.toString.call(value)
@@ -43,7 +44,7 @@ export const isTypedArray = (value: any): value is ArrayBufferView => {
 }
 
 export const getTypedArrayName = (value: any): string | null => {
-  if (isUndefined(value)) return null
+  if (value == null) return null
   const ctor = (value as any).constructor
   if (ctor && isString(ctor.name)) return ctor.name
   const tag = Object.prototype.toString.call(value)
@@ -52,22 +53,22 @@ export const getTypedArrayName = (value: any): string | null => {
 }
 
 const TYPEDARRAY_CTORS: Record<string, any> = {
-  Int8Array: !isUndefined(Int8Array) ? Int8Array : undefined,
-  Uint8Array: !isUndefined(Uint8Array) ? Uint8Array : undefined,
-  Uint8ClampedArray: !isUndefined(Uint8ClampedArray) ? Uint8ClampedArray : undefined,
+  Int8Array: typeof Int8Array !== UDF ? Int8Array : undefined,
+  Uint8Array: typeof Uint8Array !== UDF ? Uint8Array : undefined,
+  Uint8ClampedArray: typeof Uint8ClampedArray !== UDF ? Uint8ClampedArray : undefined,
 
-  Int16Array: !isUndefined(Int16Array) ? Int16Array : undefined,
-  Uint16Array: !isUndefined(Uint16Array) ? Uint16Array : undefined,
-  Float16Array: !isUndefined(Float16Array) ? Float16Array : undefined,
+  Int16Array: typeof Int16Array !== UDF ? Int16Array : undefined,
+  Uint16Array: typeof Uint16Array !== UDF ? Uint16Array : undefined,
+  Float16Array: typeof Float16Array !== UDF ? Float16Array : undefined,
 
-  Int32Array: !isUndefined(Int32Array) ? Int32Array : undefined,
-  Uint32Array: !isUndefined(Uint32Array) ? Uint32Array : undefined,
-  Float32Array: !isUndefined(Float32Array) ? Float32Array : undefined,
+  Int32Array: typeof Int32Array !== UDF ? Int32Array : undefined,
+  Uint32Array: typeof Uint32Array !== UDF ? Uint32Array : undefined,
+  Float32Array: typeof Float32Array !== UDF ? Float32Array : undefined,
 
-  Float64Array: !isUndefined(Float64Array) ? Float64Array : undefined,
+  Float64Array: typeof Float64Array !== UDF ? Float64Array : undefined,
 
-  BigInt64Array: !isUndefined(BigInt64Array) ? BigInt64Array : undefined,
-  BigUint64Array: !isUndefined(BigUint64Array) ? BigUint64Array : undefined,
+  BigInt64Array: typeof BigInt64Array !== UDF ? BigInt64Array : undefined,
+  BigUint64Array: typeof BigUint64Array !== UDF ? BigUint64Array : undefined,
 }
 
 export const toHex = (value: Uint8Array): string => {

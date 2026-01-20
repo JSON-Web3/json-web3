@@ -4,6 +4,7 @@ const payload = {
   decimals: 18n,
   u8Array: new Uint8Array([1, 2, 3, 255]),
   u16Array: new Uint16Array([1, 2, 3, 255]),
+  Float16Array: new Float16Array([1.5, 2.5, 3.5, NaN]),
   bigIntArray: new BigInt64Array([18446744073709551615n, 2n, 3n, 255n]),
   createdAt: new Date('2020-01-02T03:04:05.006Z'),
   ids: new Set([123, 456]),
