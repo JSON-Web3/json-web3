@@ -2,7 +2,7 @@ export const BIGINT_TAG = '__@json.bigint__'
 export const TYPEDARRAY_TAG = '__@json.typedarray__'
 
 export const undefined = void 0
-export const isUndefined = (value: any): value is undefined => value === undefined
+export const isUndefined = (value: any): value is undefined => typeof value === 'undefined'
 export const isString = (value: any): value is string => typeof value === 'string'
 export const hasOwnProperty = (obj: any, prop: string): boolean =>
   Object.prototype.hasOwnProperty.call(obj, prop)
