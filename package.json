@@ -46,6 +46,7 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
     "@types/node": "^25.0.10",
     "@vitest/coverage-v8": "^4.0.17",
     "fs-extra": "^11.3.3",
