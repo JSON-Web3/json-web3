@@ -25,10 +25,21 @@ jobs:
         with:
           node-version: lts/*
 
+      - name: Resolve pnpm version from packageManager
+        id: resolve_pnpm
+        run: |
+          PNPM_VERSION=$(node -p "(require('./package.json').packageManager || '').replace(/^pnpm@/, '')")
+          if [ -z "$PNPM_VERSION" ] || [ "$PNPM_VERSION" = "" ]; then
+            echo "packageManager does not contain a valid pnpm version"
+            exit 1
+          fi
+          echo "Using pnpm version: $PNPM_VERSION"
+          echo "version=$PNPM_VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10.28.1
+          version: ${{ steps.resolve_pnpm.outputs.version }}
 
       - name: Install dependencies
         run: pnpm install
